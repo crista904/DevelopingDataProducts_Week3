@@ -1,0 +1,128 @@
+---
+title: "Comparing Discover Financial Services (DFS) stock prices with major world events"
+author: "Developing Data Products Course Project Week 3 by: Angela"
+date: "Original: 5/6/2020, Updated: 5/18/2020"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning= FALSE, comment = " ")
+setwd("~/Documents/ContinuedLearning/Coursera_DataScience/Course9_DevelopingDataProducts/Week3")
+library(plotly)
+library(tidyverse)
+library(quantmod)
+library(tidyquant) #Learn more at: https://university.business-science.io/p/learning-labs-pro
+```
+
+## Overview of assignment
+
+Create a web page presentation using R Markdown that features a plot created with Plotly. Host your webpage on either GitHub Pages, RPubs, or NeoCities. 
+
+Your webpage must contain:  
+- the date that you created the document  
+- it must contain a plot created with Plotly  
+
+We would love to see you show off your creativity!
+
+
+## Overview of packages used in assigment:
+
+- Quantmod
+- Tidyverse
+- Plotly
+- Quantmod
+
+## Importing Data
+
+You will need to first pick a time range that you want to look at:
+```{r import, echo = TRUE, message = FALSE, warning= FALSE}
+start <- as.Date("2020-01-01")
+end <- as.Date("2020-05-18")
+```
+
+You will then need to pick your stocks of interest. In this case, we are looking at DFS.
+```{r ticker selection, echo = TRUE, results = "hide"}
+getSymbols("DFS", src = "yahoo", from = start, to = end)
+```
+
+## Stock Dataframe
+
+The getSymbols() function imports your stock data as a timeseries of class "xts" or "zoo", so you need to convert this to a dataframe. Be sure to keep index (date). 
+```{r time series, comment = " ", format = "markdown"}
+DFS <-  data.frame(date=index(DFS), coredata(DFS))
+head(DFS)
+```
+
+## Importing major world events
+
+In order to compare DFS with major world events, we need to import world event data. Data was taken from: <https://www.nytimes.com/article/coronavirus-timeline.html>
+
+```{r create and merge df, echo = FALSE}
+events <- data.frame("date" = as.Date(c("2020-01-02","2020-01-11","2020-01-13","2020-01-20","2020-01-30","2020-01-31","2020-02-02","2020-02-29","2020-03-11","2020-03-13","2020-03-16","2020-03-26","2020-03-29","2020-04-02")), "descr" = c("Unknown pneumonia cases in China","First death in China","First case recorded outside of China", "First case reported in US", "WHO declared global health emergency","US restricts travel from China","First death outside of China","First death in US","US banned travel from Europe","US declares National Emergency","15 days to stop the spread in US","US leads the world in cases","30 days to slow the spread in US","Millions lose their job"))
+DFS <- left_join(DFS, events, by = "date")
+```
+```{r show}
+head(events)
+```
+
+
+## Make a plot using ggplot
+
+```{r candlestick, message = FALSE, warning= FALSE, fig.align= "center", fig.height=4, fig.width=7}
+DFS %>%
+    ggplot(aes(x=date, y = DFS.Close))+
+    geom_candlestick(aes(open = DFS.Open, 
+                         high = DFS.High, 
+                         low = DFS.Low, 
+                         close = DFS.Close,
+                         fill_up = "darkgreen",
+                         fill_down = "darkred",
+                         colour_up = "darkgreen",
+                         colour_down = "darkred"))+
+    theme(text = element_text(size = 8))+
+    labs(title = "DFS Stock Prices", x = "Date", y = "Price (in USD)")+
+    geom_text(size = 3, x = as.Date("2020-01-11"), y = 87, label = "1st China death")+
+    geom_text(size = 3, x = as.Date("2020-01-13"), y = 76, label = "1st case")+
+    geom_text(size = 3, x = as.Date("2020-01-13"), y = 74, label = "outside of China")+
+    geom_text(size = 3, x = as.Date("2020-01-20"), y = 80, label = "1st US case", color = "red")+
+    geom_text(size = 3, x = as.Date("2020-01-30"), y = 65, label = "WHO global declares", 
+              color = "blue")+
+    geom_text(size = 3, x = as.Date("2020-01-30"), y = 63, label = "health emergency", 
+              color = "blue")+
+    geom_text(size = 3, x = as.Date("2020-01-31"), y = 68, label = "US bans travel from China")+
+    geom_text(size = 3, x = as.Date("2020-02-02"), y = 72, label = "1st death outside China")+
+    geom_text(size = 3, x = as.Date("2020-02-29"), y = 76, label = "1st US death", color = "red")+
+    geom_text(size = 3, x = as.Date("2020-03-11"), y = 40, label = "US bans travel")+
+    geom_text(size = 3, x = as.Date("2020-03-11"), y = 38, label = "from Europe")+
+    geom_text(size = 3, x = as.Date("2020-03-13"), y = 32, label = "US declares")+
+    geom_text(size = 3, x = as.Date("2020-03-13"), y = 30, label = "National")+
+    geom_text(size = 3, x = as.Date("2020-03-13"), y = 28, label = "Emergency")+
+    geom_text(size = 3, x = as.Date("2020-03-23"), y = 85, label = "15 days to stop the spread")+
+    geom_text(size = 3, x = as.Date("2020-03-26"), y = 45, label = "US leads world in cases")+
+    geom_text(size = 3, x = as.Date("2020-04-15"), y = 75, label = "30 days to slow the spread")+
+    geom_text(size = 3, x = as.Date("2020-04-02"), y = 51, label = "Millions report job loss")+
+    geom_rect(aes(xmin = as.Date("2020-03-15"), 
+                  xmax = as.Date("2020-03-30")), 
+              ymin = -Inf, ymax = Inf, 
+              alpha = .002, fill = "red")+
+    geom_rect(aes(xmin = as.Date("2020-03-30"), 
+                  xmax = as.Date("2020-04-30")), 
+              ymin = -Inf, ymax = Inf, 
+              alpha = .002, fill = "darkgreen")
+
+```
+
+## Make an interactive plot
+
+We can also create an interactive plot (but unfortunately we lose the world event labels). If you hover, you can see open (green) and close (red) prices for each day.
+```{r point}
+DFSplot <- DFS %>%
+    ggplot(aes(x=date))+
+    geom_point(aes(y = DFS.Open), color = "darkgreen", size = 0.5)+
+    geom_point(aes(y = DFS.Close), color = "darkred", size= 0.5)+
+    theme_bw()+
+    labs(title = "DFS Stock Prices", x = "Date", y = "Price (in USD)")+
+    theme(legend.position = "bottom")
+plot <- ggplotly(DFSplot)
+plot
+```
